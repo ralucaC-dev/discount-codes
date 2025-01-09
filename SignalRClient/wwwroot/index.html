@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SignalR Client</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.4/signalr.min.js"></script>
+</head>
+<body>
+    <h1>Generate Codes</h1>
+    <div>
+        <label for="numberInput">Number:</label>
+        <input id="numberInput" type="number" placeholder="Enter number" />
+    </div>
+    <div>
+        <label for="lengthInput">Length:</label>
+        <input id="lengthInput" type="number" placeholder="Enter length" />
+    </div>
+    <button onclick="generateCodes()">Generate Codes</button>
+
+    <div id="resultGenerateCodes"></div>
+
+    <hr />
+
+    <div>
+        <h2>Apply Code</h2>
+        <label for="codeInput">Enter Code:</label>
+        <input id="codeInput" type="text" placeholder="Enter code" />
+        <button onclick="applyCode()">Apply Code</button>
+    </div>
+
+    <div id="resultApplyCode"></div>
+
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("http://localhost:5173/hub")
+            .build();
+
+        async function start() {
+            try {
+                await connection.start();
+                console.log("Connected to SignalR server!");
+            } catch (err) {
+                console.error("Error while starting connection:", err);
+                setTimeout(start, 5000);
+            }
+        }
+
+        async function generateCodes() {
+            const number = parseInt(document.getElementById("numberInput").value, 10);
+            const length = parseInt(document.getElementById("lengthInput").value, 10);
+
+            if (connection.state !== signalR.HubConnectionState.Connected) {
+                console.error("Connection is not in the 'Connected' state. Retrying...");
+                document.getElementById("resultGenerateCodes").textContent = "Connection not established. Please wait...";
+                return;
+            }
+
+            try {
+                const result = await connection.invoke("GenerateCodes", number, length);
+                document.getElementById("resultGenerateCodes").textContent = `Result: ${result}`;
+            } catch (err) {
+                console.error("Error calling GenerateCodes:", err);
+                document.getElementById("resultGenerateCodes").textContent = `Error: ${err.message}`;
+            }
+        }
+
+        async function applyCode() {
+            const text = document.getElementById("codeInput").value;
+
+            if (connection.state !== signalR.HubConnectionState.Connected) {
+                console.error("Connection is not in the 'Connected' state. Retrying...");
+                document.getElementById("resultApplyCode").textContent = "Connection not established. Please wait...";
+                return;
+            }
+
+            try {
+                const result = await connection.invoke("ApplyCode", text);
+                document.getElementById("resultApplyCode").textContent = `Result: ${result}`;
+            } catch (err) {
+                console.error("Error calling ApplyCode:", err);
+                document.getElementById("resultApplyCode").textContent = `Error: ${err.message}`;
+            }
+        }
+
+        connection.onclose(() => {
+            console.log("Connection closed. Attempting to restart...");
+            start();
+        });
+
+        start();
+    </script>
+</body>
+</html>
